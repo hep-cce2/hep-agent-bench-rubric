@@ -1,10 +1,10 @@
-# Grading (v0.1)
+# Grading (v0.2)
 
 A grader (`tests/test.sh`) runs after the agent finishes. It checks the agent's result on held-out data, measures it against the baseline and the expert, and writes a reward in [0, 1]. The [`hepbench`](https://github.com/hep-cce2/hep-agent-bench-tools) package implements each rule below; its function names are given in brackets.
 
 ## Three versions
 
-The grader builds and measures three versions of the code, on the same hardware in the same run:
+For gain-based scores (`log-gain-vs-expert`), the grader builds and measures three versions of the code, on the same hardware in the same run:
 
 | Version | Source |
 |---|---|
@@ -32,7 +32,7 @@ After the gate, a figure of merit becomes the reward. A task expresses it as a *
 | compression ratio (higher is better) | `agent_ratio / baseline_ratio` |
 | throughput (higher is better) | `agent_rate / baseline_rate` |
 
-### `log-gain-vs-expert` (the only score in v0.1)
+### `log-gain-vs-expert`
 
 ```
 score  = log(agent_gain) / log(expert_gain)        [log_gain_vs_expert]
@@ -40,6 +40,17 @@ reward = clamp(score, 0, 1) if correct else 0      [gated_reward]
 ```
 
 1 means the agent matched the expert; below 0 means it did worse than the baseline. Logs make a 2× speedup count the same whether the expert reached 4× or 400×, on a scale relative to the expert. If the expert does not beat the baseline on the trial's hardware (`expert_gain <= 1`), the trial is invalid and scores 0, and the task needs fixing.
+
+### `fraction-passed`
+
+For a task made of independent items, e.g. a set of analysis questions, each with its own gate:
+
+```
+reward  = passed / total
+correct = (passed == total)
+```
+
+Each item MUST have its own correctness gate on held-out data, stated in `instruction.md` (e.g. "every printed metric within a relative 1e-5 of the grader's own computation on the held-out file"). Items are not weighted. There is no baseline or expert, so `gain` and `hardware` do not apply. A tolerance MUST be tight enough that the answer on the development data fails on the held-out data, so a hard-coded answer cannot pass; check this for every item when choosing it.
 
 Tasks with more than one figure of merit (e.g. speed *and* compression) are not covered yet; propose a score here before writing one.
 
@@ -52,13 +63,13 @@ The grader MUST write, under `/logs/verifier/` [`write_result`]:
 
 ```json
 {
-  "spec_version": "0.1",
+  "rubric_version": "0.2",
   "reward": 0.56,
   "correct": true
 }
 ```
 
-plus the task's own fields. For `log-gain-vs-expert`, include the raw gains and the uncapped score, so that agents that beat the expert can still be ranked. frnn writes `speedup`, `expert_speedup`, `log_speedup_vs_expert` and `p50_s` (per version).
+plus the task's own fields. For `log-gain-vs-expert`, include the raw gains and the uncapped score, so that agents that beat the expert can still be ranked. frnn writes `speedup`, `expert_speedup`, `log_speedup_vs_expert` and `p50_s` (per version). For `fraction-passed`, include `passed`, `total` and each item's result with the reason it failed.
 
 Any failure (build, run, missing data, tampered baseline) MUST still write `reward.txt` with 0 and exit 0, with the reason in the log.
 
