@@ -1,4 +1,4 @@
-# Task format (v0.1)
+# Task format (v0.2)
 
 ## Layout
 
@@ -31,16 +31,20 @@ Alongside Harbor's own fields, a task MUST set:
 
 | Key | Example (frnn) | Meaning |
 |---|---|---|
-| `hep_agent_bench_spec` | `"0.1"` | Spec version the task follows |
+| `hep_agent_bench_rubric` | `"0.2"` | Rubric version the task follows |
 | `upstream_repository` | `"https://github.com/xju2/libFRNN"` | Code the agent works on |
-| `upstream_commit` | `"5ce9f21e…"` | The pinned starting point (the baseline) |
+| `upstream_commit` | `"5ce9f21e…"` | The pinned starting point (the baseline), or the commit the task was taken from |
 | `score` | `"log-gain-vs-expert"` | Score from [grading.md](grading.md#scores) |
-| `gain` | `"baseline_p50 / agent_p50"` | The figure of merit, as a ratio over the baseline where larger is better |
+| `gain` | `"baseline_p50 / agent_p50"` | Gain-based scores only: the figure of merit, as a ratio over the baseline where larger is better |
 | `gate` | `"exact edge-set equality on the held-out event"` | The correctness gate |
-| `hardware` | `"1 NVIDIA GPU, sm_75 or sm_86"` | What the task must be graded on |
+| `hardware` | `"1 NVIDIA GPU, sm_75 or sm_86"` | Gain-based scores only: what the task must be graded on |
 | `canary` | `"7053dfb6-…"` | The canary GUID, see below |
 
 It SHOULD set `base_environment` when the image is built from another repository.
+
+## solution/
+
+`solve.sh` runs before `tests/` is copied in, so an oracle that needs grader code (e.g. a reference implementation) has to carry its own copy in `solution/`. That copy MUST be byte-identical to the one in `tests/`, and the task repository MUST check this automatically (CI), since a stale copy only shows up when the oracle is next run.
 
 ## Data
 
